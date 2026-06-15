@@ -1,0 +1,18 @@
+# Byte-compiled / optimized / DLL files de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales locales (por si no usas Conda global)
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Carpetas de configuración de editores de código (Mac / VS Code)
+.vscode/
+.DS_Store
+.idea/
