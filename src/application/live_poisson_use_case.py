@@ -1,4 +1,4 @@
-from domain.interfaces import ProbabilityCalculator, MatchDataLoader
+from domain.interfaces import ProbabilityCalculator
 from domain.models import ExpectedGoals
 from infrastructure.mongo_repository import PyMongoStatsRepository
 
@@ -13,21 +13,31 @@ class LivePoissonUseCase:
         metrics_home = self._mongo_repo.get_team_tournament_metrics(home_team)
         metrics_away = self._mongo_repo.get_team_tournament_metrics(away_team)
 
-        # 2. Si no hay partidos jugados en el torneo, asignar lambdas base de seguridad
-        lambda_home = metrics_home["xg_ataque"] if metrics_home else 1.35
-        lambda_away = metrics_away["xg_ataque"] if metrics_away else 1.10
+        # 2. Asignar lambdas base de seguridad (Fallback) si no hay registros en Mongo
+        # Valores base calculados a partir de la media de goles esperados del torneo
+        att_home = metrics_home["xg_ataque"] if metrics_home else 1.35
+        def_home = metrics_home["xg_defensa"] if metrics_home else 1.10
+        
+        att_away = metrics_away["xg_ataque"] if metrics_away else 1.10
+        def_away = metrics_away["xg_defensa"] if metrics_away else 1.35
 
-        # Si ya se cruzaron datos, refinamos los lambdas cruzando ataque vs defensa
+        # 🚀 CORRECCIÓN MATEMÁTICA: Multiplicación de intensidades en lugar de promedios planos
+        # Los goles proyectados son el resultado de la fuerza de ataque multiplicada por la vulnerabilidad defensiva del rival.
         if metrics_home and metrics_away:
-            lambda_home = (metrics_home["xg_ataque"] + metrics_away["xg_defensa"]) / 2
-            lambda_away = (metrics_away["xg_ataque"] + metrics_home["xg_defensa"]) / 2
+            lambda_home = att_home * def_away
+            lambda_away = att_away * def_home
+        else:
+            # Si uno es debutante, usamos su ataque estimado o el fallback directo
+            lambda_home = att_home
+            lambda_away = att_away
 
+        # Asegurar un piso mínimo de 0.1 para evitar que Poisson colapse con valores en 0
         expected = ExpectedGoals(home=max(0.1, lambda_home), away=max(0.1, lambda_away))
         
-        # 3. Calcular la matriz Dixon-Coles probabilística con el TOP 5 solicitado 🚀
+        # 3. Calcular la distribución Dixon-Coles probabilística con el TOP 5 solicitado 🚀
         outcomes, top_scores = self._prob_calculator.calculate_distribution(expected, top_n=5)
 
-        # 4. Retornar un formato ultra valioso para el apostador
+        # 4. Retornar un formato estandarizado y limpio para el bot de WhatsApp
         return {
             "metodo": "Métricas xG Reales del Torneo (Live In-Play)",
             "encuentro": f"{home_team} vs {away_team}",

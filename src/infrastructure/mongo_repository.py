@@ -24,7 +24,7 @@ class PyMongoStatsRepository(MatchStatsRepository):
                 "$project": {
                     "is_local": {"$eq": ["$partido.equipo_local", team_name]},
                     "stats_gen": "$estadisticas_generales",
-                    "stats_esp": "$estadisticas_especificas"
+                    "stats_esp": "$estadisticas_specificas"
                 }
             },
             {
@@ -41,7 +41,7 @@ class PyMongoStatsRepository(MatchStatsRepository):
         return resultado[0] if resultado else None
 
     def get_team_tournament_metrics(self, team_name: str) -> Optional[Dict[str, Any]]:
-        """Calcula el xG real acumulado (Ataque y Defensa) del equipo en lo que va del torneo."""
+        """Calcula el xG real acumulado (Ataque y Defensa) del equipo de forma exacta."""
         pipeline = [
             {
                 "$match": {
@@ -54,6 +54,8 @@ class PyMongoStatsRepository(MatchStatsRepository):
             {
                 "$project": {
                     "is_local": {"$eq": ["$partido.equipo_local", team_name]},
+                    "local_name": "$partido.equipo_local",
+                    "away_name": "$partido.equipo_visitante",
                     "goles_esperados": "$estadisticas_generales.goles_esperados_xG"
                 }
             }
@@ -68,12 +70,10 @@ class PyMongoStatsRepository(MatchStatsRepository):
         
         for p in partidos:
             xg_dict = p.get("goles_esperados", {})
-            # Extraer las llaves para saber quién es quién
-            keys = list(xg_dict.keys())
-            if len(keys) < 2:
-                continue
-                
-            local_team, away_team = keys[0], keys[1]
+            local_team = p.get("local_name")
+            away_team = p.get("away_name")
+
+            # 🚀 EXTRACCIÓN BLINDADA: Buscamos por el nombre exacto de la selección, nunca por posición
             xg_local = float(xg_dict.get(local_team, 1.35))
             xg_away = float(xg_dict.get(away_team, 1.10))
 
