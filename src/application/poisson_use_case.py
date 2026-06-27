@@ -25,9 +25,14 @@ class PoissonUseCase:
     def execute(self, home_team: str, away_team: str) -> PoissonPredictionResult:
         teams = MatchTeams(home=home_team, away=away_team)
         
+        # Traducir a inglés para validar contra la base de datos de control
+        from infrastructure.team_translator import TeamTranslator
+        h_en = TeamTranslator.to_english(home_team)
+        a_en = TeamTranslator.to_english(away_team)
+        
         # Validación de integridad de los datos de entrada
-        if home_team not in self._team_stats or away_team not in self._team_stats:
-            raise ValueError("Uno o ambos equipos no existen en los registros recientes.")
+        if h_en not in self._team_stats or a_en not in self._team_stats:
+            raise ValueError(f"Uno o ambos equipos ({home_team} / {away_team}) no existen en los registros recientes.")
             
         # 🌁 EL PUENTE DE CONEXIÓN ABSOLUTA:
         # Extraemos el cálculo predictivo del RandomForest para alimentar el motor Poisson

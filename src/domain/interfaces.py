@@ -20,3 +20,15 @@ class MatchStatsRepository(ABC):
     @abstractmethod
     def get_team_historical_summary(self, team_name: str) -> Optional[Dict[str, Any]]:
         pass
+
+class FeatureExtractor(ABC):
+    """Interfaz abstracta para la extracción de características (Features) de los equipos."""
+    @abstractmethod
+    def extract_features(self, home_team: str, away_team: str, is_neutral: int = 1) -> pd.DataFrame:
+        pass
+
+class PredictorModel(ABC):
+    """Interfaz abstracta para el motor predictivo de machine learning."""
+    @abstractmethod
+    def simular(self, equipo_1: str, equipo_2: str) -> dict:
+        pass

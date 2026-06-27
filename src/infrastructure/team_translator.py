@@ -46,7 +46,32 @@ class TeamTranslator:
         "tunez": "Tunisia",
         "turquia": "Turkey",
         "uruguay": "Uruguay",
-        "uzbekistan": "Uzbekistan"
+        "uzbekistan": "Uzbekistan",
+        "croacia": "Croatia",
+        "inglaterra": "England",
+        "portugal": "Portugal",
+        "españa": "Spain",
+        "espana": "Spain",
+        "francia": "France",
+        "ghana": "Ghana",
+        "panama": "Panama",
+        "polonia": "Poland",
+        "dinamarca": "Denmark",
+        "camerun": "Cameroon",
+        "colombia": "Colombia",
+        "peru": "Peru",
+        "chile": "Chile",
+        "venezuela": "Venezuela",
+        "bolivia": "Bolivia",
+        "gales": "Wales",
+        "escocia": "Scotland",
+        "austria": "Austria",
+        "georgia": "Georgia",
+        "rumania": "Romania",
+        "eslovaquia": "Slovakia",
+        "eslovenia": "Slovenia",
+        "italia": "Italy",
+        "ucrania": "Ukraine"
     }
 
     @classmethod

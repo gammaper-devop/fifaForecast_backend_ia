@@ -2,8 +2,9 @@ import os
 import joblib
 import pandas as pd
 from pathlib import Path
+from domain.interfaces import PredictorModel
 
-class SimuladorMundial:
+class SimuladorMundial(PredictorModel):
     """Clase encargada de interactuar con los binarios persistidos de Random Forest."""
     def __init__(self):
         # Localización de ruta absoluta dinámica sin importar la terminal de ejecución
@@ -14,25 +15,64 @@ class SimuladorMundial:
         self.model_reg_A = joblib.load(os.path.join(MODELS_DIR, 'modelo_regresor_A.pkl'))
         self.model_reg_B = joblib.load(os.path.join(MODELS_DIR, 'modelo_regresor_B.pkl'))
         self.stats_data = joblib.load(os.path.join(MODELS_DIR, 'stats_neutrales.pkl'))
+        
+        # Cargar diccionarios de ELO y Forma Reciente
+        try:
+            self.elo_actual = joblib.load(os.path.join(MODELS_DIR, 'elo_actual.pkl'))
+            self.historial_partidos = joblib.load(os.path.join(MODELS_DIR, 'historial_partidos.pkl'))
+        except Exception:
+            # Fallback en caso de que aún no existan
+            self.elo_actual = {}
+            self.historial_partidos = {}
+            
         self.anfitriones = ["Mexico", "United States", "Canada", "México", "EE.UU", "Canadá"]
 
     def simular(self, equipo_1: str, equipo_2: str) -> dict:
-        stats_1 = self.stats_data[self.stats_data['equipo'] == equipo_1]
-        stats_2 = self.stats_data[self.stats_data['equipo'] == equipo_2]
+        # Traducir los nombres de las selecciones de Español a Inglés para buscar en los datasets históricos
+        from infrastructure.team_translator import TeamTranslator
+        eq1_en = TeamTranslator.to_english(equipo_1)
+        eq2_en = TeamTranslator.to_english(equipo_2)
+
+        stats_1 = self.stats_data[self.stats_data['equipo'] == eq1_en]
+        stats_2 = self.stats_data[self.stats_data['equipo'] == eq2_en]
         
         if stats_1.empty or stats_2.empty:
             return {"error": f"Uno de los equipos ({equipo_1} o {equipo_2}) no está registrado."}
 
         es_neutral = 1
-        if equipo_1 in self.anfitriones or equipo_2 in self.anfitriones:
+        # Comprobar si alguno es anfitrión
+        if eq1_en in self.anfitriones or eq2_en in self.anfitriones or equipo_1 in self.anfitriones or equipo_2 in self.anfitriones:
             es_neutral = 0
 
+        # ELO pre-partido
+        el_1 = self.elo_actual.get(eq1_en, 1500.0)
+        el_2 = self.elo_actual.get(eq2_en, 1500.0)
+        
+        # Forma Reciente (últimos 5 partidos)
+        def get_current_form(team_en):
+            hist = self.historial_partidos.get(team_en, [])
+            if not hist:
+                return 1.0, 1.0, 1.0
+            recent = hist[-5:]
+            pts = sum(x["points"] for x in recent) / len(recent)
+            gf = sum(x["goals_scored"] for x in recent) / len(recent)
+            ga = sum(x["goals_conceded"] for x in recent) / len(recent)
+            return pts, gf, ga
+            
+        pts_1, gf_1, ga_1 = get_current_form(eq1_en)
+        pts_2, gf_2, ga_2 = get_current_form(eq2_en)
+
+        # Construir el vector de variables de entrada coincidiendo exactamente con el entrenamiento (17 variables)
         cara_1 = pd.DataFrame([{
             'ataque_home_A': stats_1['ataque_home'].values[0], 'defensa_home_A': stats_1['defensa_home'].values[0],
             'ataque_away_A': stats_1['ataque_away'].values[0], 'defensa_away_A': stats_1['defensa_away'].values[0],
             'ataque_home_B': stats_2['ataque_home'].values[0], 'defensa_home_B': stats_2['defensa_home'].values[0],
             'ataque_away_B': stats_2['ataque_away'].values[0], 'defensa_away_B': stats_2['defensa_away'].values[0],
-            'is_neutral_match': es_neutral
+            'is_neutral_match': es_neutral,
+            'elo_home': el_1, 'elo_away': el_2,
+            'form_pts_home': pts_1, 'form_pts_away': pts_2,
+            'form_gf_home': gf_1, 'form_gf_away': gf_2,
+            'form_ga_home': ga_1, 'form_ga_away': ga_2
         }])
 
         p1 = self.model_clas.predict_proba(cara_1)[0]
@@ -57,6 +97,7 @@ class SimuladorMundial:
             if prob_eq1 - prob_eq2 > 5: goles_1_round += 1
             elif prob_eq2 - prob_eq1 > 5: goles_2_round += 1
 
+        # Retornar estructura idéntica para consumo del frontend
         return {
             "equipo_1": equipo_1,
             "equipo_2": equipo_2,

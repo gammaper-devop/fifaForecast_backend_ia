@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from pymongo import MongoClient
 from domain.interfaces import MatchStatsRepository
 
@@ -8,6 +8,10 @@ class PyMongoStatsRepository(MatchStatsRepository):
         self._client = MongoClient(uri)
         self._db = self._client[db_name]
         self._collection = self._db["partidos_reales"]
+
+    def get_all_matches(self) -> List[Dict[str, Any]]:
+        """Recupera todos los partidos registrados en MongoDB para integrarlos al entrenamiento."""
+        return list(self._collection.find({}))
 
     def get_team_historical_summary(self, team_name: str) -> Optional[Dict[str, Any]]:
         """Pipeline de agregación de MongoDB para calcular los promedios reales del torneo."""
