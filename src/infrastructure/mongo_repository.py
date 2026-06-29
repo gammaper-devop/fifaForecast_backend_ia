@@ -1,10 +1,13 @@
+import os
 from typing import Optional, Dict, Any
 from pymongo import MongoClient
 from domain.interfaces import MatchStatsRepository
 
 class PyMongoStatsRepository(MatchStatsRepository):
     """Implementación real del contrato utilizando el contenedor de MongoDB."""
-    def __init__(self, uri: str = "mongodb://localhost:27017/", db_name: str = "mongo-mundial"):
+    def __init__(self, uri: Optional[str] = None, db_name: str = "mongo-mundial"):
+        if uri is None:
+            uri = os.getenv("MONGO_URI", "mongodb://admin:G%40mm%40per40425109@localhost:27017/?authSource=admin")
         self._client = MongoClient(uri)
         self._db = self._client[db_name]
         self._collection = self._db["partidos_reales"]
