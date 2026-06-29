@@ -45,7 +45,7 @@ def predict_random_forest(request: MatchRequest):
         return rf_use_case.execute(request.home_team, request.away_team)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception:
+    except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en Random Forest: {str(e)}")
 
 @router.post("/poisson")
@@ -54,7 +54,7 @@ def predict_poisson(request: MatchRequest):
         return poisson_use_case.execute(request.home_team, request.away_team)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception:
+    except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en Poisson: {str(e)}")
     
 @router.get("/match-stats")
