@@ -6,14 +6,14 @@ from domain.interfaces import PredictorModel
 
 class SimuladorMundial(PredictorModel):
     """Clase encargada de interactuar con los binarios persistidos de Random Forest."""
-    def __init__(self):
+    def __init__(self, model_prefix: str = "rf"):
         # Localización de ruta absoluta dinámica sin importar la terminal de ejecución
         BASE_DIR = Path(__file__).resolve().parent.parent.parent
         MODELS_DIR = BASE_DIR / "models_pkl"
 
-        self.model_clas = joblib.load(os.path.join(MODELS_DIR, 'modelo_clasificador_mundial.pkl'))
-        self.model_reg_A = joblib.load(os.path.join(MODELS_DIR, 'modelo_regresor_A.pkl'))
-        self.model_reg_B = joblib.load(os.path.join(MODELS_DIR, 'modelo_regresor_B.pkl'))
+        self.model_clas = joblib.load(os.path.join(MODELS_DIR, f'modelo_clasificador_mundial_{model_prefix}.pkl'))
+        self.model_reg_A = joblib.load(os.path.join(MODELS_DIR, f'modelo_regresor_A_{model_prefix}.pkl'))
+        self.model_reg_B = joblib.load(os.path.join(MODELS_DIR, f'modelo_regresor_B_{model_prefix}.pkl'))
         self.stats_data = joblib.load(os.path.join(MODELS_DIR, 'stats_neutrales.pkl'))
         
         # Cargar diccionarios de ELO y Forma Reciente

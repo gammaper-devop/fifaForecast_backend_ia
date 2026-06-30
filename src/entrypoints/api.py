@@ -21,14 +21,16 @@ DATA_PATH = BASE_DIR / "data" / "results.csv"
 # Instanciación e Inyección de Dependencias
 data_loader = PandasMatchDataLoader()
 poisson_calculator = ScipyPoissonCalculator()
-simulador_forest = SimuladorMundial()
+simulador_forest = SimuladorMundial(model_prefix="rf")
+simulador_xgb = SimuladorMundial(model_prefix="xgb")
 mongo_repo = PyMongoStatsRepository()
 
 rf_use_case = RandomForestUseCase(simulador_forest=simulador_forest)
+xgb_use_case = RandomForestUseCase(simulador_forest=simulador_xgb)
 poisson_use_case = PoissonUseCase(
     data_loader=data_loader,
     prob_calculator=poisson_calculator,
-    simulador_forest=simulador_forest,
+    simulador_forest=simulador_xgb,
     data_path=str(DATA_PATH),
     top_n=5
 )
@@ -41,12 +43,23 @@ class MatchRequest(BaseModel):
 
 @router.post("/random-forest")
 def predict_random_forest(request: MatchRequest):
+    """Endpoint clásico que utiliza el modelo RandomForest original."""
     try:  
         return rf_use_case.execute(request.home_team, request.away_team)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en Random Forest: {str(e)}")
+
+@router.post("/predict-ml")
+def predict_ml(request: MatchRequest):
+    """Endpoint moderno que utiliza el modelo XGBoost con decaimiento temporal y ELO."""
+    try:
+        return xgb_use_case.execute(request.home_team, request.away_team)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en XGBoost Engine: {str(e)}")
 
 @router.post("/poisson")
 def predict_poisson(request: MatchRequest):

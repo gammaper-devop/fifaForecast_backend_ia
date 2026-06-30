@@ -170,5 +170,11 @@ def procesar_datos_neutrales(ruta_csv: str, mongo_matches: list = None):
     
     df_neutral['is_neutral_match'] = df_neutral['neutral'].astype(int)
     df_neutral = df_neutral.fillna(0)
+    
+    # Calcular pesos con decaimiento temporal (Half-life de 4 años = 1460 días)
+    max_date = df_neutral['date'].max()
+    diferencia_dias = (max_date - df_neutral['date']).dt.days
+    lambda_decay = 0.000475  # ln(2) / 1460
+    df_neutral['weight'] = np.exp(-lambda_decay * diferencia_dias)
 
     return df_neutral, stats_totales, elo_actual, historial_partidos
