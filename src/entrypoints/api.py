@@ -6,11 +6,13 @@ from infrastructure.data_loader import PandasMatchDataLoader
 from infrastructure.poisson_calculator import ScipyPoissonCalculator
 from infrastructure.predictor import SimuladorMundial
 from infrastructure.mongo_repository import PyMongoStatsRepository
+from infrastructure.set_pieces_predictor import XGBoostSetPiecesPredictor
 
 from application.random_forest_use_case import RandomForestUseCase
 from application.poisson_use_case import PoissonUseCase
 from application.get_stats_use_case import GetStatsUseCase
 from application.live_poisson_use_case import LivePoissonUseCase
+from application.set_pieces_use_case import SetPiecesUseCase
 from infrastructure.team_translator import TeamTranslator
 
 router = APIRouter(prefix="/api/v1")
@@ -34,6 +36,16 @@ poisson_use_case = PoissonUseCase(
 )
 stats_use_case = GetStatsUseCase(repository=mongo_repo)
 live_poisson_use_case = LivePoissonUseCase(mongo_repo=mongo_repo, prob_calculator=poisson_calculator)
+
+set_pieces_predictor = XGBoostSetPiecesPredictor()
+corners_calculator = ScipyPoissonCalculator(max_goals=20)
+shots_calculator = ScipyPoissonCalculator(max_goals=15)
+set_pieces_use_case = SetPiecesUseCase(
+    set_pieces_predictor=set_pieces_predictor,
+    corners_calculator=corners_calculator,
+    shots_calculator=shots_calculator,
+    top_n=5,
+)
 
 class MatchRequest(BaseModel):
     home_team: str
@@ -74,3 +86,12 @@ def predict_live_match(request: MatchRequest):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en la simulación Live In-Play: {str(e)}")
+
+@router.post("/set-pieces")
+def predict_set_pieces(request: MatchRequest):
+    try:
+        return set_pieces_use_case.execute(request.home_team.strip(), request.away_team.strip())
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en Set Pieces (XGBoost + Dixon-Coles): {str(e)}")

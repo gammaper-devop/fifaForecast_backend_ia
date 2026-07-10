@@ -48,3 +48,32 @@ class RandomForestPredictionResult:
     mas_menos_goles: str
     ambos_anotan: str
     marcador_exacto: str
+
+@dataclass
+class SetPiecesExpectedCounts:
+    corners_home: float
+    corners_away: float
+    shots_on_target_home: float
+    shots_on_target_away: float
+
+@dataclass
+class OverUnderLine:
+    line: float
+    over: float
+    under: float
+
+@dataclass
+class CountDistribution:
+    expected_home: float
+    expected_away: float
+    probabilities_1x2: Probabilities1X2
+    fair_odds: FairOdds
+    top_exact_counts: List[ExactScore]
+    over_under: List[OverUnderLine]
+
+@dataclass
+class SetPiecesPredictionResult:
+    teams: MatchTeams
+    expected_counts: SetPiecesExpectedCounts
+    corners: CountDistribution
+    shots_on_target: CountDistribution
